@@ -334,4 +334,4 @@ ErrorDestinationProductNotFound=Destination product not found
 ErrorProductCombinationNotFound=Product variant not found
 
 AddProductLine=Add Product Line
-ConfirmAddProductLine=This Product was already ordered by this Consumer. Do you want to proceed?
+ConfirmAddProductLine=This Product was already ordered by this Consumer 

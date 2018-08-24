@@ -4857,4 +4857,56 @@ class Product extends CommonObject
     	return $obj;
     }
 
+    function getShipToAddress($CustomerId,$factureId)
+    {    	
+    	/*
+    			$sql = "SELECT DISTINCT fk_prod_attr, a.rang
+			FROM ".MAIN_DB_PREFIX."product_attribute_combination2val c2v LEFT JOIN ".MAIN_DB_PREFIX."product_attribute_combination c
+			    ON c2v.fk_prod_combination = c.rowid
+			  LEFT JOIN ".MAIN_DB_PREFIX."product p ON p.rowid = c.fk_product_child
+			  LEFT JOIN ".MAIN_DB_PREFIX."product_attribute a ON a.rowid = fk_prod_attr
+			WHERE c.fk_product_parent = ".(int) $productid." AND p.tosell = 1";
+
+			SELECT * FROM llx_commandedet LEFT JOIN llx_commande on llx_commande.rowid = llx_commandedet.fk_commande left join llx_product on llx_commandedet.fk_product = llx_product.rowid where llx_commande.fk_soc=1 and llx_commandedet.fk_product = 1 
+
+			"SELECT ec.fk_socpeople FROM llx_element_contact as ec, llx_socpeople as c, llx_c_type_contact as tc WHERE ec.element_id = 4 AND ec.fk_socpeople = c.rowid AND c.entity IN (1) AND ec.fk_c_type_contact = tc.rowid AND tc.element = 'facture' AND tc.source = 'external' AND tc.code = 'BILLING' AND tc.active = 1"; */
+			
+    		$sql = "SELECT * FROM ".MAIN_DB_PREFIX."element_contact ec LEFT JOIN ".MAIN_DB_PREFIX."socpeople c ON ec.fk_socpeople = c.rowid LEFT JOIN  ".MAIN_DB_PREFIX."c_type_contact tc ON ec.fk_c_type_contact = tc.rowid WHERE ec.element_id = ".(int) $factureId." AND tc.active = 1 AND c.entity IN (1) AND (tc.element = 'facture' OR tc.element = 'commande') AND tc.source = 'external' AND tc.code='SHIPPING'";   	
+    	$result = $this->db->query($sql);    	
+    	if ($result)
+        {
+        	if ($this->db->num_rows($result))
+            {
+                $obj = $this->db->fetch_object($result);
+            }
+        }
+    	return $obj;
+    }
+
+	function getBillToAddress($CustomerId,$factureId)
+    {    	
+    	/*
+    			$sql = "SELECT DISTINCT fk_prod_attr, a.rang
+			FROM ".MAIN_DB_PREFIX."product_attribute_combination2val c2v LEFT JOIN ".MAIN_DB_PREFIX."product_attribute_combination c
+			    ON c2v.fk_prod_combination = c.rowid
+			  LEFT JOIN ".MAIN_DB_PREFIX."product p ON p.rowid = c.fk_product_child
+			  LEFT JOIN ".MAIN_DB_PREFIX."product_attribute a ON a.rowid = fk_prod_attr
+			WHERE c.fk_product_parent = ".(int) $productid." AND p.tosell = 1";
+
+			SELECT * FROM llx_commandedet LEFT JOIN llx_commande on llx_commande.rowid = llx_commandedet.fk_commande left join llx_product on llx_commandedet.fk_product = llx_product.rowid where llx_commande.fk_soc=1 and llx_commandedet.fk_product = 1 
+
+			"SELECT ec.fk_socpeople FROM llx_element_contact as ec, llx_socpeople as c, llx_c_type_contact as tc WHERE ec.element_id = 4 AND ec.fk_socpeople = c.rowid AND c.entity IN (1) AND ec.fk_c_type_contact = tc.rowid AND tc.element = 'facture' AND tc.source = 'external' AND tc.code = 'BILLING' AND tc.active = 1"; */
+			
+    		$sql = "SELECT * FROM ".MAIN_DB_PREFIX."element_contact ec LEFT JOIN ".MAIN_DB_PREFIX."socpeople c ON ec.fk_socpeople = c.rowid LEFT JOIN  ".MAIN_DB_PREFIX."c_type_contact tc ON ec.fk_c_type_contact = tc.rowid WHERE ec.element_id = ".(int) $factureId." AND tc.active = 1 AND c.entity IN (1) AND (tc.element = 'facture' OR tc.element = 'commande') AND tc.source = 'external' AND tc.code='BILLING'";   	
+    	$result = $this->db->query($sql);    	
+    	if ($result)
+        {
+        	if ($this->db->num_rows($result))
+            {
+                $obj = $this->db->fetch_object($result);
+            }
+        }
+    	return $obj;
+    }
+
 }

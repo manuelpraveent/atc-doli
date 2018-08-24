@@ -415,6 +415,9 @@ function pdf_build_address($outputlangs,$sourcecompany,$targetcompany='',$target
 
     		if (empty($conf->global->MAIN_PDF_DISABLESOURCEDETAILS))
     		{
+    			if ( !empty($conf->global->MAIN_INFO_SIREN)) {					
+					$stringaddress .= ($stringaddress ? "\n" : '' )."GSTINB: ".$outputlangs->convToOutputCharset($conf->global->MAIN_INFO_SIREN);
+				}
     			// Phone
     			if ($sourcecompany->phone) $stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("PhoneShort").": ".$outputlangs->convToOutputCharset($sourcecompany->phone);
     			// Fax
@@ -512,9 +515,15 @@ function pdf_build_address($outputlangs,$sourcecompany,$targetcompany='',$target
     			if ($targetcompany->tva_intra) $stringaddress.=($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("VATIntraShort").': '.$outputlangs->convToOutputCharset($targetcompany->tva_intra);
     		}
 
+    		//Added by Prajna
+    		//print '<pre>';
+    		//print_r($conf->global);
+    		//print '<pre>'; exit;
+
     		// Professionnal Ids
     		if (! empty($conf->global->MAIN_PROFID1_IN_ADDRESS) && ! empty($targetcompany->idprof1))
     		{
+
     			$tmp=$outputlangs->transcountrynoentities("ProfId1",$targetcompany->country_code);
     			if (preg_match('/\((.+)\)/',$tmp,$reg)) $tmp=$reg[1];
     			$stringaddress.=($stringaddress ? "\n" : '' ).$tmp.': '.$outputlangs->convToOutputCharset($targetcompany->idprof1);
@@ -2141,3 +2150,72 @@ function pdf_getSizeForImage($realpath)
 	return array('width'=>$width,'height'=>$height);
 }
 
+
+function pdf_shipto_address($outputlangs,$address,$sourcecompany,$targetcompany)
+{
+	global $conf;
+	$stringaddress = '';
+	$withCountry = 0;
+	$address->country_code = $targetcompany->country_code;
+	//print '<pre>';
+	//print_r($address);
+	//print '</pre>';exit;
+
+	if (!empty($targetcompany->country_code) && ($sourcecompany->country_code != $targetcompany->country_code)) $withCountry = 1;
+
+	$stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->convToOutputCharset(dol_format_address($address, $withCountry, "\n", $outputlangs))."\n";
+
+	if (empty($conf->global->MAIN_PDF_DISABLESOURCEDETAILS))
+	{
+		//Added by Prajna
+		if ( !empty($conf->global->MAIN_PROFID1_IN_ADDRESS)  && ! empty($targetcompany->idprof1))
+		{	
+			$tmp=$outputlangs->transcountrynoentities("ProfId1",$targetcompany->country_code);
+    			if (preg_match('/\((.+)\)/',$tmp,$reg)) $tmp=$reg[1];				
+			$stringaddress .= ($stringaddress ? "\n" : '' ).$tmp.': '.$outputlangs->convToOutputCharset($targetcompany->idprof1);
+		}
+		// Phone
+		if ($address->phone) $stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("PhoneShort").": ".$outputlangs->convToOutputCharset($address->phone);
+		// Fax
+		if ($address->fax) $stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("Fax").": ".$outputlangs->convToOutputCharset($address->fax);
+		// EMail
+		if ($address->email) $stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("Email").": ".$outputlangs->convToOutputCharset($address->email);
+		// Web
+		if ($address->url) $stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("Web").": ".$outputlangs->convToOutputCharset($address->url);
+	}
+	return $stringaddress;
+}
+
+
+function pdf_billto_address($outputlangs,$address,$sourcecompany,$targetcompany)
+{
+	global $conf;
+	$stringaddress = '';
+	$withCountry = 0;
+	$address->country_code = $targetcompany->country_code;
+	if (!empty($targetcompany->country_code) && ($sourcecompany->country_code != $targetcompany->country_code)) $withCountry = 1;
+
+	$stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->convToOutputCharset(dol_format_address($address, $withCountry, "\n", $outputlangs))."\n";
+	
+
+	if (empty($conf->global->MAIN_PDF_DISABLESOURCEDETAILS))
+	{
+		//Added by Prajna
+		if ( !empty($conf->global->MAIN_PROFID1_IN_ADDRESS)  && ! empty($targetcompany->idprof1))
+		{	
+			$tmp=$outputlangs->transcountrynoentities("ProfId1",$targetcompany->country_code);
+    			if (preg_match('/\((.+)\)/',$tmp,$reg)) $tmp=$reg[1];				
+			$stringaddress .= ($stringaddress ? "\n" : '' ).$tmp.': '.$outputlangs->convToOutputCharset($targetcompany->idprof1);
+		}
+
+		// Phone
+		if ($address->phone) $stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("PhoneShort").": ".$outputlangs->convToOutputCharset($address->phone);
+		// Fax
+		if ($address->fax) $stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("Fax").": ".$outputlangs->convToOutputCharset($address->fax);
+		// EMail
+		if ($address->email) $stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("Email").": ".$outputlangs->convToOutputCharset($address->email);
+		// Web
+		if ($address->url) $stringaddress .= ($stringaddress ? "\n" : '' ).$outputlangs->transnoentities("Web").": ".$outputlangs->convToOutputCharset($address->url);
+	}
+	return $stringaddress;
+}

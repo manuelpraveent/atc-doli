@@ -686,6 +686,18 @@ class pdf_crabe extends ModelePDFFactures
 				// Affiche zone totaux
 				$posy=$this->_tableau_tot($pdf, $object, $deja_regle, $bottomlasttab, $outputlangs);
 
+				//Added by Prajna
+				$total_ttc = ($conf->multicurrency->enabled && $object->multicurrency_tx != 1) ? $object->multicurrency_total_ttc : $object->total_ttc;
+				$amountInNumbers = (int)price($sign * $total_ttc, 0, $outputlangs);				
+				$totalInWords= $this->convertNumberToWordsForIndia($amountInNumbers);
+				$InWordsINR = 'In Words(INR) :';
+				$pdf->SetFont('','B',10);
+				$pdf->SetXY(10, 255);
+				$pdf->MultiCell(100, 3, $InWordsINR, 0, 'L', 0);
+
+				$pdf->SetXY(50, 255);
+				$pdf->MultiCell(100, 3, $totalInWords, 0, 'L', 0);
+
 				// Affiche zone versements
 				if (($deja_regle || $amount_credit_notes_included || $amount_deposits_included) && empty($conf->global->INVOICE_NO_PAYMENT_DETAILS))
 				{
@@ -1778,18 +1790,6 @@ class pdf_crabe extends ModelePDFFactures
 			$pdf->SetFont('','', $default_font_size - 1);
 			$pdf->MultiCell($widthrecbox-2, 4, $carac_emetteur, 0, 'L');
 			
-			//print '<pre>';
-			//print_r($conf->global);
-			//print '</pre>';
-			//exit;
-			if ( !empty($conf->global->MAIN_INFO_SIREN)) {
-				$gstin = 'GSTIN: '.$conf->global->MAIN_INFO_SIREN;
-				$pdf->SetXY($posx+2,$posy+12);
-				$pdf->SetFont('','', $default_font_size - 1);
-				$pdf->MultiCell($widthrecbox-2, 4, $gstin, 0, 'L');
-			}
-			
-
 			// If BILLING contact defined on invoice, we use it
 			$usecontact=false;
 			$arrayidcontact=$object->getIdContact('external','BILLING');
@@ -1799,6 +1799,22 @@ class pdf_crabe extends ModelePDFFactures
 				$result=$object->fetch_contact($arrayidcontact[0]);
 			}
 
+			// Added Prajna
+			$printShipToAddress = '';
+			$printBillToAddress = '';
+			$CustomerId = $object->thirdparty->id;			
+			$factureId = $object->id;			
+			$prod = new Product($this->db);
+			$ShipToAddress = $prod->getShipToAddress($CustomerId,$factureId);
+			$BillToAddress = $prod->getBillToAddress($CustomerId,$factureId);
+
+			if($ShipToAddress){
+				$printShipToAddress=pdf_shipto_address($outputlangs,$ShipToAddress,$this->emetteur,$object->thirdparty);
+			}
+			
+			if($BillToAddress){
+				$printBillToAddress=pdf_billto_address($outputlangs,$BillToAddress,$this->emetteur,$object->thirdparty);
+			}
 			//Recipient name
 			// On peut utiliser le nom de la societe du contact
 			if ($usecontact && !empty($conf->global->MAIN_USE_COMPANY_NAME_OF_CONTACT)) {
@@ -1811,6 +1827,8 @@ class pdf_crabe extends ModelePDFFactures
 
 			$carac_client=pdf_build_address($outputlangs,$this->emetteur,$object->thirdparty,($usecontact?$object->contact:''),$usecontact,'target',$object);
 
+//********************first   
+
   	// Show recipient
 			$widthrecbox=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 92 : 53.5;
 			if ($this->page_largeur < 210) $widthrecbox=12;	// To work with US executive format
@@ -1820,26 +1838,47 @@ class pdf_crabe extends ModelePDFFactures
 		//	$posx=$this->page_largeur-$this->marge_droite-$widthrecbox;
 			if (! empty($conf->global->MAIN_INVERT_SENDER_RECIPIENT)) $posx=$this->marge_gauche;
 
-			// Show recipient frame
-			$pdf->SetTextColor(0,0,0);
-			$pdf->SetFont('','', $default_font_size - 1);
-			$pdf->SetXY($posx,$posy-5);
-			$pdf->MultiCell($widthrecbox, 5, $outputlangs->transnoentities("Bill To").":",0,'L');
-			$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre);
+			if(! empty($printBillToAddress)){
+				// Show recipient frame
+				$pdf->SetTextColor(0,0,0);
+				$pdf->SetFont('','', $default_font_size - 1);
+				$pdf->SetXY($posx,$posy-5);
+				$pdf->MultiCell($widthrecbox, 5, $outputlangs->transnoentities("Bill To").":",0,'L');
+				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre);
 
-			// Show recipient name
-			$pdf->SetXY($posx+2,$posy+3);
-			$pdf->SetFont('','B', $default_font_size);
-			$pdf->MultiCell($widthrecbox, 2, $carac_client_name, 0, 'L');
+				// Show recipient name
+				$pdf->SetXY($posx+2,$posy+3);
+				$pdf->SetFont('','B', $default_font_size);
+				$pdf->MultiCell($widthrecbox, 2, $BillToAddress->lastname, 0, 'L');
 
-			$posy = $pdf->getY();
+				$posy = $pdf->getY();
 
- 		// Show recipient information
-			$pdf->SetFont('','', $default_font_size - 1);
-			$pdf->SetXY($posx+2,$posy);
-			$pdf->MultiCell($widthrecbox, 4, $carac_client, 0, 'L');
+	 		// Show recipient information
+				$pdf->SetFont('','', $default_font_size - 1);
+				$pdf->SetXY($posx+2,$posy);
+				$pdf->MultiCell($widthrecbox, 4, $printBillToAddress, 0, 'L');
 
-			// Added Prajna
+			}else{
+				// Show recipient frame
+				$pdf->SetTextColor(0,0,0);
+				$pdf->SetFont('','', $default_font_size - 1);
+				$pdf->SetXY($posx,$posy-5);
+				$pdf->MultiCell($widthrecbox, 5, $outputlangs->transnoentities("Bill To").":",0,'L');
+				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre);
+
+				// Show recipient name
+				$pdf->SetXY($posx+2,$posy+3);
+				$pdf->SetFont('','B', $default_font_size);
+				$pdf->MultiCell($widthrecbox, 2, $carac_client_name, 0, 'L');
+
+				$posy = $pdf->getY();
+
+	 		// Show recipient information
+				$pdf->SetFont('','', $default_font_size - 1);
+				$pdf->SetXY($posx+2,$posy);
+				$pdf->MultiCell($widthrecbox, 4, $carac_client, 0, 'L');
+			}
+//********************second   
 
          	// Show recipient
 			$widthrecbox=!empty($conf->global->MAIN_PDF_USE_ISO_LOCATION) ? 92 : 53.5;
@@ -1850,26 +1889,45 @@ class pdf_crabe extends ModelePDFFactures
 		//	$posx=$this->page_largeur-$this->marge_droite-$widthrecbox;
 			if (! empty($conf->global->MAIN_INVERT_SENDER_RECIPIENT)) $posx=$this->marge_gauche;
 
-			// Show recipient frame
-			$pdf->SetTextColor(0,0,0);
-			$pdf->SetFont('','', $default_font_size - 1);
-			$pdf->SetXY($posx,$posy-5);
-			$pdf->MultiCell($widthrecbox, 5, $outputlangs->transnoentities("Ship To").":",0,'L');
-			$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre);
+			if(! empty($printShipToAddress)){
+				// Show recipient frame
+				$pdf->SetTextColor(0,0,0);
+				$pdf->SetFont('','', $default_font_size - 1);
+				$pdf->SetXY($posx,$posy-5);
+				$pdf->MultiCell($widthrecbox, 5, $outputlangs->transnoentities("Ship To").":",0,'L');
+				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre);
 
-			// Show recipient name
-			$pdf->SetXY($posx+2,$posy+3);
-			$pdf->SetFont('','B', $default_font_size);
-			$pdf->MultiCell($widthrecbox, 2, $carac_client_name, 0, 'L');
+				// Show recipient name
+				$pdf->SetXY($posx+2,$posy+3);
+				$pdf->SetFont('','B', $default_font_size);
+				$pdf->MultiCell($widthrecbox, 2, $ShipToAddress->lastname, 0, 'L');
 
-			$posy = $pdf->getY();
+				$posy = $pdf->getY();
 
- 		// Show recipient information
-			$pdf->SetFont('','', $default_font_size - 1);
-			$pdf->SetXY($posx+2,$posy);
-			$pdf->MultiCell($widthrecbox, 4, $carac_client, 0, 'L');
+	 		// Show recipient information
+				$pdf->SetFont('','', $default_font_size - 1);
+				$pdf->SetXY($posx+2,$posy);
+				$pdf->MultiCell($widthrecbox, 4, $printShipToAddress, 0, 'L');
+			}else{
+					// Show recipient frame
+				$pdf->SetTextColor(0,0,0);
+				$pdf->SetFont('','', $default_font_size - 1);
+				$pdf->SetXY($posx,$posy-5);
+				$pdf->MultiCell($widthrecbox, 5, $outputlangs->transnoentities("Ship To").":",0,'L');
+				$pdf->Rect($posx, $posy, $widthrecbox, $hautcadre);
 
+				// Show recipient name
+				$pdf->SetXY($posx+2,$posy+3);
+				$pdf->SetFont('','B', $default_font_size);
+				$pdf->MultiCell($widthrecbox, 2, $carac_client_name, 0, 'L');
 
+				$posy = $pdf->getY();
+
+	 		// Show recipient information
+				$pdf->SetFont('','', $default_font_size - 1);
+				$pdf->SetXY($posx+2,$posy);
+				$pdf->MultiCell($widthrecbox, 4, $carac_client, 0, 'L');
+			}
 		}
 
 		$pdf->SetTextColor(0,0,0);
@@ -1890,6 +1948,69 @@ class pdf_crabe extends ModelePDFFactures
 		global $conf;
 		$showdetails=$conf->global->MAIN_GENERATE_DOCUMENTS_SHOW_FOOT_DETAILS;
 		return pdf_pagefoot($pdf,$outputlangs,'INVOICE_FREE_TEXT',$this->emetteur,$this->marge_basse,$this->marge_gauche,$this->page_hauteur,$object,$showdetails,$hidefreetext);
+	}
+
+
+	//Added by Prajna
+	function convertNumberToWordsForIndia($number){
+	    //A function to convert numbers into Indian readable words with Cores, Lakhs and Thousands.
+	    $words = array(
+	    '0'=> '' ,'1'=> 'one' ,'2'=> 'two' ,'3' => 'three','4' => 'four','5' => 'five',
+	    '6' => 'six','7' => 'seven','8' => 'eight','9' => 'nine','10' => 'ten',
+	    '11' => 'eleven','12' => 'twelve','13' => 'thirteen','14' => 'fouteen','15' => 'fifteen',
+	    '16' => 'sixteen','17' => 'seventeen','18' => 'eighteen','19' => 'nineteen','20' => 'twenty',
+	    '30' => 'thirty','40' => 'fourty','50' => 'fifty','60' => 'sixty','70' => 'seventy',
+	    '80' => 'eighty','90' => 'ninty');
+	    
+	    //First find the length of the number
+	    $number_length = strlen($number);
+	    //Initialize an empty array
+	    $number_array = array(0,0,0,0,0,0,0,0,0);        
+	    $received_number_array = array();
+	    
+	    //Store all received numbers into an array
+	    for($i=0;$i<$number_length;$i++){    
+	  		$received_number_array[$i] = substr($number,$i,1);    
+	  	}
+	    //Populate the empty array with the numbers received - most critical operation
+	    for($i=9-$number_length,$j=0;$i<9;$i++,$j++){ 
+	        $number_array[$i] = $received_number_array[$j]; 
+	    }
+	    $number_to_words_string = "";
+	    //Finding out whether it is teen ? and then multiply by 10, example 17 is seventeen, so if 1 is preceeded with 7 multiply 1 by 10 and add 7 to it.
+	    for($i=0,$j=1;$i<9;$i++,$j++){
+	        //"01,23,45,6,78"
+	        //"00,10,06,7,42"
+	        //"00,01,90,0,00"
+	        if($i==0 || $i==2 || $i==4 || $i==7){
+	            if($number_array[$j]==0 || $number_array[$i] == "1"){
+	                $number_array[$j] = intval($number_array[$i])*10+$number_array[$j];
+	                $number_array[$i] = 0;
+	            }
+	               
+	        }
+	    }
+	    $value = "";
+	    for($i=0;$i<9;$i++){
+	        if($i==0 || $i==2 || $i==4 || $i==7){    
+	            $value = $number_array[$i]*10; 
+	        }
+	        else{ 
+	            $value = $number_array[$i];    
+	        }            
+	        if($value!=0)         {    $number_to_words_string.= $words["$value"]." "; }
+	        if($i==1 && $value!=0){    $number_to_words_string.= "Crores "; }
+	        if($i==3 && $value!=0){    $number_to_words_string.= "Lakhs ";    }
+	        if($i==5 && $value!=0){    $number_to_words_string.= "Thousand "; }
+	        if($i==6 && $value!=0){    $number_to_words_string.= "Hundred and "; }            
+	    }
+	    if($number_length>9){ $number_to_words_string = "Sorry This does not support more than 99 Crores"; }
+	    if( !empty($number_to_words_string)){
+	    	return ucwords(strtolower($number_to_words_string)." Only.");
+	    }else{
+	    	return "NILL";
+	    }
+	    
 	}
 
 }
